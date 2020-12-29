@@ -1,4 +1,13 @@
-import { getDimensions, mapMatrix, getLocation } from "functional-game-utils";
+import {
+  getDimensions,
+  mapMatrix,
+  getLocation,
+  getNeighbors,
+  getCrossDirections,
+  isLocationInBounds,
+  updateMatrix,
+  compareLocations,
+} from "functional-game-utils";
 
 import {
   getUpLocation,
@@ -7,15 +16,81 @@ import {
   getLeftLocation,
   pickRandomlyFromArray,
   mutateLocation,
+  intersectionMany,
 } from "./utils";
 
+const evaluateRuleInDirection = (
+  originLocation,
+  targetDirection,
+  grid,
+  rules
+) => {
+  const possibleOptions = [];
+
+  if (isLocationInBounds(grid, originLocation)) {
+    const originOptions = getLocation(grid, originLocation);
+
+    rules.forEach((rule) => {
+      const [origin, target, direction] = rule;
+
+      originOptions.forEach((option) => {
+        // Does this rule pertain to this neighbor
+        // Is this rule's direction applying to our current cell
+        if (origin === option && direction === targetDirection) {
+          // Add this rule as a possible option for this current cell
+          possibleOptions.push(target);
+        }
+      });
+    });
+  }
+
+  return possibleOptions;
+};
+
+const evaluateCellOptions = (grid, location, rules) => {
+  const upLocation = getUpLocation(location);
+  const upOptions = evaluateRuleInDirection(upLocation, "DOWN", grid, rules);
+
+  const downLocation = getUpLocation(location);
+  const downOptions = evaluateRuleInDirection(downLocation, "UP", grid, rules);
+
+  const leftLocation = getUpLocation(location);
+  const leftOptions = evaluateRuleInDirection(
+    leftLocation,
+    "RIGHT",
+    grid,
+    rules
+  );
+
+  const rightLocation = getUpLocation(location);
+  const rightOptions = evaluateRuleInDirection(
+    rightLocation,
+    "LEFT",
+    grid,
+    rules
+  );
+
+  return intersectionMany(upOptions, downOptions, leftOptions, rightOptions);
+};
+
 const startCollapseGrid = (grid, tileTypes, rules) => {
-  const defaultOptions = mapMatrix(() => [], grid);
+  const defaultOptions = mapMatrix(() => [...tileTypes], grid);
+  const modifiedOptions = updateMatrix(
+    { row: 0, col: 0 },
+    ["OCEAN"],
+    defaultOptions
+  );
+
+  const opt = evaluateCellOptions(
+    modifiedOptions,
+    { row: 1, col: 0 },
+    rules,
+    tileTypes
+  );
+  console.log(opt);
 
   return collapseGrid(defaultOptions, tileTypes, rules);
 };
-
-const evaluateCellOptions = (grid, location, rules, tileTypes) => {};
 
 const applyRules = (chosenOption, location, grid, rules) => {
   const dimensions = getDimensions(grid);
@@ -57,8 +132,48 @@ const applyRules = (chosenOption, location, grid, rules) => {
   });
 };
 
+const ripple = (grid, location, rules, closed = []) => {
+  if (!isLocationInBounds(grid, location)) {
+    // we have reached the edge of the grid
+    return;
+  }
+
+  if (
+    closed.some((closedLocation) => compareLocations(closedLocation, location))
+  ) {
+    // If we have already visited this location, do not perform any calculations
+    return;
+  }
+
+  // mark this node as visited
+  closed.push(location);
+
+  const neighbors = getNeighbors(getCrossDirections, grid, location);
+
+  neighbors.forEach((neighborLocation) => {
+    const neighborOptions = evaluateCellOptions(grid, neighborLocation, rules);
+
+    if (neighborOptions.length === 0) {
+      // we have reached an invalid waveform collapse pattern
+      // we'll need to try again
+      console.log(
+        `There was no valid option for the neighbor ${neighborLocation}`
+      );
+
+      return;
+    }
+
+    // mutate the grid with the newly calculated options
+    mutateLocation(grid, neighborLocation, neighborOptions);
+
+    ripple(grid, neighborLocation, rules, closed);
+  });
+};
+
 const collapseGrid = (grid, tileTypes, rules) => {
-  const location = pickRandomUncollapsedLocation(grid);
+  const location = pickLowestEntropyUncollapsedLocation(grid);
+
+  // console.log(JSON.parse(JSON.stringify(grid)));
 
   if (location?.finished) {
     return grid;
@@ -77,21 +192,19 @@ const collapseGrid = (grid, tileTypes, rules) => {
   mutateLocation(grid, location, [chosenOption]);
 
   // deal with ripples from this selection
-  // we need to handle this rules application to every other tile
-  // that we adjust with these rules as well
-  applyRules(chosenOption, location, grid, rules);
+  ripple(grid, location, rules);
 
   return collapseGrid(grid, tileTypes, rules);
 };
 
-const pickRandomUncollapsedLocation = (optionsGrid) => {
+const evaluateTileEntropy = (tile) => {
+  return tile.length;
+};
+
+const pickLowestEntropyUncollapsedLocation = (optionsGrid) => {
   const allLocations = mapMatrix((_, location) => location, optionsGrid).flat();
   const unCollapsedLocations = allLocations.filter((location) => {
-    return (
-      getLocation(optionsGrid, location).length > 1 ||
-      getLocation(optionsGrid, location).length === 0
-    );
-    // empty arrays represent a location that hasn't been analyzed yet
+    return getLocation(optionsGrid, location).length > 1;
   });
 
   if (unCollapsedLocations.length === 0) {
@@ -99,7 +212,15 @@ const pickRandomUncollapsedLocation = (optionsGrid) => {
     return { finished: true };
   }
 
-  const location = pickRandomlyFromArray(unCollapsedLocations);
+  // sort tiles by their entropy
+  unCollapsedLocations.sort(
+    (locationA, locationB) =>
+      evaluateTileEntropy(getLocation(optionsGrid, locationA)) -
+      evaluateTileEntropy(getLocation(optionsGrid, locationB))
+  );
+
+  // pick lowest entropy tile next
+  const [location] = unCollapsedLocations;
 
   return location;
 };

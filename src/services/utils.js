@@ -1,3 +1,5 @@
+import { intersection } from "ramda";
+
 const intBetweenExclusive = (low, high) => {
   return Math.floor(Math.random() * (high - low)) + low;
 };
@@ -22,30 +24,35 @@ function pickRandomlyFromArray(array) {
 const getLeftLocation = (location) => {
   return {
     row: location.row,
-    col: Math.max(location.col - 1, 0),
+    col: location.col - 1,
   };
 };
 
 const getRightLocation = (location, dimensions) => {
   return {
     row: location.row,
-    col: Math.min(location.col + 1, dimensions.width - 1),
+    col: location.col + 1,
   };
 };
 
 const getUpLocation = (location) => {
   return {
-    row: Math.max(location.row - 1, 0),
+    row: location.row - 1,
     col: location.col,
   };
 };
 
 const getDownLocation = (location, dimensions) => {
   return {
-    row: Math.min(location.row + 1, dimensions.height - 1),
+    row: location.row + 1,
     col: location.col,
   };
 };
+
+const intersectionMany = (...arrays) =>
+  arrays.reduce((currentIntersection, array) => {
+    return intersection(currentIntersection, array);
+  });
 
 export {
   getLeftLocation,
@@ -55,4 +62,5 @@ export {
   pickRandomLocation,
   pickRandomlyFromArray,
   mutateLocation,
+  intersectionMany,
 };

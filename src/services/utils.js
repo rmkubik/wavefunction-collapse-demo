@@ -49,6 +49,13 @@ const getDownLocation = (location, dimensions) => {
   };
 };
 
+const getOppositeDirection = (direction) => {
+  if (direction === "LEFT") return "RIGHT";
+  if (direction === "RIGHT") return "LEFT";
+  if (direction === "UP") return "DOWN";
+  if (direction === "DOWN") return "UP";
+};
+
 const intersectionMany = (...arrays) =>
   arrays.reduce((currentIntersection, array) => {
     return intersection(currentIntersection, array);
@@ -63,4 +70,5 @@ export {
   pickRandomlyFromArray,
   mutateLocation,
   intersectionMany,
+  getOppositeDirection,
 };

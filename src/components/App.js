@@ -3,6 +3,7 @@ import { remove, mergeLeft } from "ramda";
 import React, { useState } from "react";
 
 import { startCollapseGrid } from "../services/waveFunctionCollapse";
+import { getOppositeDirection } from "../services/utils";
 
 const renderTile = ({ type }) => {
   if (type === "EMPTY") return ".";
@@ -49,15 +50,34 @@ const App = ({ initialGrid }) => {
     target: tileTypes[0],
     origin: tileTypes[0],
     direction: "LEFT",
+    addSymmetricRule: true,
   });
 
   const { width, height } = getDimensions(grid);
 
   const addRule = (newRuleOptions) => {
-    setRules([
-      ...rules,
-      [newRuleOptions.origin, newRuleOptions.target, newRuleOptions.direction],
-    ]);
+    const newRules = newRuleOptions.addSymmetricRule
+      ? [
+          [
+            newRuleOptions.origin,
+            newRuleOptions.target,
+            newRuleOptions.direction,
+          ],
+          [
+            newRuleOptions.target,
+            newRuleOptions.origin,
+            getOppositeDirection(newRuleOptions.direction),
+          ],
+        ]
+      : [
+          [
+            newRuleOptions.origin,
+            newRuleOptions.target,
+            newRuleOptions.direction,
+          ],
+        ];
+
+    setRules([...rules, ...newRules]);
   };
 
   const removeRule = (ruleIndex) => {
@@ -181,6 +201,22 @@ const App = ({ initialGrid }) => {
           ))}
         </select>
         <button onClick={() => addRule(newRuleFormSelections)}>Add Rule</button>
+        <input
+          name="addSymmetricRule"
+          type="checkbox"
+          checked={newRuleFormSelections.addSymmetricRule}
+          onChange={(event) => {
+            setNewRuleFormSelections(
+              mergeLeft(
+                {
+                  addSymmetricRule: event.target.checked,
+                },
+                newRuleFormSelections
+              )
+            );
+          }}
+        />
+        <label htmlFor="addSymmetricRule">Add symmetric rule</label>
       </div>
       <p>
         This site was made while referencing{" "}

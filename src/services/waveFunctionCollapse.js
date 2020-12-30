@@ -87,8 +87,6 @@ const evaluateCellOptions = (grid, location, rules, tileTypes) => {
     tileTypes
   );
 
-  console.log({ location, upOptions, downOptions, leftOptions, rightOptions });
-
   return intersectionMany(upOptions, downOptions, leftOptions, rightOptions);
 };
 
@@ -187,12 +185,13 @@ const ripple = (grid, location, rules, tileTypes, closed = []) => {
 
     return ripple(grid, neighborLocation, rules, tileTypes, closed);
   }
+
+  // If we reach this point then we have no open neighbors
+  return true;
 };
 
 const collapseGrid = (grid, tileTypes, rules) => {
   const location = pickLowestEntropyUncollapsedLocation(grid);
-
-  // console.log(JSON.parse(JSON.stringify(grid)));
 
   if (location?.finished) {
     return { grid, success: true };
@@ -214,7 +213,6 @@ const collapseGrid = (grid, tileTypes, rules) => {
   const didRippleSucceed = ripple(grid, location, rules, tileTypes);
 
   if (!didRippleSucceed) {
-    console.log("ripple did not succeed");
     return { grid, success: false };
   }
 

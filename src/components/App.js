@@ -1,4 +1,5 @@
 import { getDimensions, mapMatrix } from "functional-game-utils";
+import { remove, mergeLeft } from "ramda";
 import React, { useState } from "react";
 
 import { startCollapseGrid } from "../services/waveFunctionCollapse";
@@ -23,8 +24,8 @@ const App = ({ initialGrid }) => {
   const [grid, setGrid] = useState(initialGrid);
   const [tileTypes, setTileTypes] = useState(["TREE", "BEACH"]);
   const [rules, setRules] = useState([
-    // ["TREE", "BEACH", "RIGHT"],
-    // ["BEACH", "TREE", "LEFT"],
+    ["TREE", "BEACH", "RIGHT"],
+    ["BEACH", "TREE", "LEFT"],
     ["TREE", "TREE", "RIGHT"],
     ["TREE", "TREE", "LEFT"],
     ["TREE", "TREE", "UP"],
@@ -44,8 +45,24 @@ const App = ({ initialGrid }) => {
     // ["BEACH", "OCEAN", "RIGHT"],
     // ["OCEAN", "BEACH", "LEFT"],
   ]);
+  const [newRuleFormSelections, setNewRuleFormSelections] = useState({
+    target: tileTypes[0],
+    origin: tileTypes[0],
+    direction: "LEFT",
+  });
 
   const { width, height } = getDimensions(grid);
+
+  const addRule = (newRuleOptions) => {
+    setRules([
+      ...rules,
+      [newRuleOptions.origin, newRuleOptions.target, newRuleOptions.direction],
+    ]);
+  };
+
+  const removeRule = (ruleIndex) => {
+    setRules(remove(ruleIndex, 1, rules));
+  };
 
   const generateGrid = () => {
     const { grid: generatedGrid, success } = startCollapseGrid(
@@ -55,7 +72,7 @@ const App = ({ initialGrid }) => {
     );
 
     if (success) {
-      setStatus("SUCCESS");
+      setStatus("SUCCEEDED");
     } else {
       setStatus("FAILED");
     }
@@ -91,14 +108,80 @@ const App = ({ initialGrid }) => {
       <p>{getStatusMessage(status)}</p>
       <h2>Rules</h2>
       <ul>
-        {rules.map(([origin, target, direction]) => {
+        {rules.map(([origin, target, direction], ruleIndex) => {
           return (
-            <li
-              key={`${origin}.${target}.${direction}`}
-            >{`${target} can be ${direction} from ${origin}`}</li>
+            <li key={`${origin}.${target}.${direction}`}>
+              {`${target} can be ${direction} from ${origin}`}
+              <button onClick={() => removeRule(ruleIndex)}>X</button>
+            </li>
           );
         })}
       </ul>
+      <div>
+        <select
+          value={newRuleFormSelections.target}
+          onChange={(event) => {
+            setNewRuleFormSelections(
+              mergeLeft(
+                {
+                  target: event.target.value,
+                },
+                newRuleFormSelections
+              )
+            );
+          }}
+          name="target"
+          id="new-rule-target-select"
+        >
+          {tileTypes.map((tile) => (
+            <option key={tile} value={tile}>
+              {tile}
+            </option>
+          ))}
+        </select>
+        <select
+          value={newRuleFormSelections.direction}
+          onChange={(event) => {
+            setNewRuleFormSelections(
+              mergeLeft(
+                {
+                  direction: event.target.value,
+                },
+                newRuleFormSelections
+              )
+            );
+          }}
+          name="direction"
+          id="new-rule-direction-select"
+        >
+          <option value="LEFT">LEFT</option>
+          <option value="RIGHT">RIGHT</option>
+          <option value="UP">UP</option>
+          <option value="DOWN">DOWN</option>
+        </select>
+        <select
+          value={newRuleFormSelections.origin}
+          onChange={(event) => {
+            setNewRuleFormSelections(
+              mergeLeft(
+                {
+                  origin: event.target.value,
+                },
+                newRuleFormSelections
+              )
+            );
+          }}
+          name="origin"
+          id="new-rule-origin-select"
+        >
+          {tileTypes.map((tile) => (
+            <option key={tile} value={tile}>
+              {tile}
+            </option>
+          ))}
+        </select>
+        <button onClick={() => addRule(newRuleFormSelections)}>Add Rule</button>
+      </div>
     </>
   );
 };

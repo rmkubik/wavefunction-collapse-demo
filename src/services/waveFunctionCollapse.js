@@ -5,6 +5,7 @@ import {
   getCrossDirections,
   isLocationInBounds,
   compareLocations,
+  getDimensions,
 } from "functional-game-utils";
 
 import {
@@ -88,10 +89,10 @@ const evaluateCellOptions = (grid, location, rules, tileTypes) => {
   return intersectionMany(upOptions, downOptions, leftOptions, rightOptions);
 };
 
-const startCollapseGrid = (grid, tileTypes, rules) => {
+const startCollapseGrid = (grid, tileTypes, rules, rng) => {
   const defaultOptions = mapMatrix(() => [...tileTypes], grid);
 
-  return collapseGrid(defaultOptions, tileTypes, rules);
+  return collapseGrid(defaultOptions, tileTypes, rules, rng);
 };
 
 const ripple = (grid, location, rules, tileTypes, closed = []) => {
@@ -142,7 +143,7 @@ const ripple = (grid, location, rules, tileTypes, closed = []) => {
   return true;
 };
 
-const collapseGrid = (grid, tileTypes, rules) => {
+const collapseGrid = (grid, tileTypes, rules, rng) => {
   const location = pickLowestEntropyUncollapsedLocation(grid);
 
   if (location?.finished) {
@@ -157,10 +158,11 @@ const collapseGrid = (grid, tileTypes, rules) => {
     options = [...tileTypes];
   }
 
-  const chosenOption = pickRandomlyFromArray(options);
+  const chosenOption = pickRandomlyFromArray(options, rng);
 
   mutateLocation(grid, location, [chosenOption]);
 
+  console.log(`start a ripple from ${JSON.stringify(location)}`);
   // deal with ripples from this selection
   const didRippleSucceed = ripple(grid, location, rules, tileTypes);
 
@@ -168,7 +170,7 @@ const collapseGrid = (grid, tileTypes, rules) => {
     return { grid, success: false };
   }
 
-  return collapseGrid(grid, tileTypes, rules);
+  return collapseGrid(grid, tileTypes, rules, rng);
 };
 
 const evaluateTileEntropy = (tile) => {

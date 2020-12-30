@@ -3,6 +3,7 @@ import React from "react";
 import { constructMatrix } from "functional-game-utils";
 
 import App from "./components/App";
+import { createRNG } from "./services/utils";
 import "./main.scss";
 
 const height = 10;
@@ -15,6 +16,6 @@ const initialGrid = constructMatrix(
 );
 
 ReactDOM.render(
-  <App initialGrid={initialGrid} />,
+  <App initialGrid={initialGrid} initialRng={createRNG()} />,
   document.getElementById("root")
 );

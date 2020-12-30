@@ -9,7 +9,8 @@
     "ramda": "^0.27.1",
     "ramda-adjunct": "^2.29.0",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "seedrandom": "^3.0.5"
   },
   "devDependencies": {
     "sass": "^1.30.0"

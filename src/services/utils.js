@@ -1,15 +1,16 @@
+import seedRandom from "seedrandom";
 import { intersection } from "ramda";
 
-const intBetweenExclusive = (low, high) => {
-  return Math.floor(Math.random() * (high - low)) + low;
+const intBetweenExclusive = (low, high, rng) => {
+  return Math.floor(rng() * (high - low)) + low;
 };
 
-const pickRandomLocation = (matrix) => {
+const pickRandomLocation = (matrix, rng) => {
   const dimensions = getDimensions(matrix);
 
   return {
-    row: intBetweenExclusive(0, dimensions.height),
-    col: intBetweenExclusive(0, dimensions.width),
+    row: intBetweenExclusive(0, dimensions.height, rng),
+    col: intBetweenExclusive(0, dimensions.width, rng),
   };
 };
 
@@ -17,8 +18,8 @@ const mutateLocation = (matrix, location, value) => {
   matrix[location.row][location.col] = value;
 };
 
-function pickRandomlyFromArray(array) {
-  return array[Math.floor(Math.random() * array.length)];
+function pickRandomlyFromArray(array, rng) {
+  return array[Math.floor(rng() * array.length)];
 }
 
 const getLeftLocation = (location) => {
@@ -61,6 +62,15 @@ const intersectionMany = (...arrays) =>
     return intersection(currentIntersection, array);
   });
 
+// randomly generate a default seed if one is not provided
+const createRNG = (seed = seedRandom()()) => {
+  // Always treat seeds as strings to disambiguate between a user
+  // copy a float type seed and it being treated as a string on paste.
+  const stringifiedSeed = seed.toString();
+
+  return { seed: stringifiedSeed, rng: seedRandom(stringifiedSeed) };
+};
+
 export {
   getLeftLocation,
   getRightLocation,
@@ -71,4 +81,5 @@ export {
   mutateLocation,
   intersectionMany,
   getOppositeDirection,
+  createRNG,
 };

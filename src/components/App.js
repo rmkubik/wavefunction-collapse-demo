@@ -3,7 +3,7 @@ import { remove, mergeLeft } from "ramda";
 import React, { useState } from "react";
 
 import { startCollapseGrid } from "../services/waveFunctionCollapse";
-import { getOppositeDirection } from "../services/utils";
+import { getOppositeDirection, createRNG } from "../services/utils";
 
 const renderTile = ({ type }) => {
   if (type === "EMPTY") return ".";
@@ -19,7 +19,21 @@ const getStatusMessage = (status) => {
   if (status === "FAILED") return "Failed!";
 };
 
-const App = ({ initialGrid }) => {
+const Column = ({ children }) => {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: "fit-content",
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+const App = ({ initialGrid, initialRng }) => {
   // UNSTARTED, GENERATING, FAILED, SUCCEEDED
   const [status, setStatus] = useState("UNSTARTED");
   const [grid, setGrid] = useState(initialGrid);
@@ -35,16 +49,6 @@ const App = ({ initialGrid }) => {
     ["BEACH", "BEACH", "LEFT"],
     ["BEACH", "BEACH", "UP"],
     ["BEACH", "BEACH", "DOWN"],
-    // ["OCEAN", "OCEAN", "RIGHT"],
-    // ["OCEAN", "OCEAN", "LEFT"],
-    // ["OCEAN", "OCEAN", "UP"],
-    // ["OCEAN", "OCEAN", "DOWN"],
-    // ['TREE', 'BEACH', 'UP'],
-    // ['BEACH', 'TREE', 'DOWN'],
-    // ['TREE', 'BEACH', 'DOWN'],
-    // ['BEACH', 'TREE', 'UP'],
-    // ["BEACH", "OCEAN", "RIGHT"],
-    // ["OCEAN", "BEACH", "LEFT"],
   ]);
   const [newRuleFormSelections, setNewRuleFormSelections] = useState({
     target: tileTypes[0],
@@ -52,6 +56,12 @@ const App = ({ initialGrid }) => {
     direction: "LEFT",
     addSymmetricRule: true,
   });
+  const [rng, setRng] = useState(initialRng);
+  const [newSeed, setNewSeed] = useState("");
+  const [pickNewSeedAfterGeneration, setPickNewSeedAfterGeneration] = useState(
+    true
+  );
+  const [seeds, setSeeds] = useState([]);
 
   const { width, height } = getDimensions(grid);
 
@@ -88,13 +98,25 @@ const App = ({ initialGrid }) => {
     const { grid: generatedGrid, success } = startCollapseGrid(
       grid,
       tileTypes,
-      rules
+      rules,
+      rng.rng
     );
 
     if (success) {
       setStatus("SUCCEEDED");
     } else {
       setStatus("FAILED");
+    }
+
+    // track our last used seed
+    setSeeds([rng.seed, ...seeds]);
+
+    if (pickNewSeedAfterGeneration) {
+      // create a new rng with an unspecified seed
+      setRng(createRNG());
+    } else {
+      // re-seed the RNG with our current seed
+      setRng(createRNG(rng.seed));
     }
 
     const gridIcons = mapMatrix((options) => {
@@ -125,7 +147,9 @@ const App = ({ initialGrid }) => {
         )}
       </div>
       <button onClick={generateGrid}>Generate</button>
-      <p>{getStatusMessage(status)}</p>
+      {status !== "UNSTARTED" && (
+        <p>{`${getStatusMessage(status)} with seed ${seeds[0]}`}</p>
+      )}
       <h2>Rules</h2>
       <ul>
         {rules.map(([origin, target, direction], ruleIndex) => {
@@ -138,6 +162,7 @@ const App = ({ initialGrid }) => {
         })}
       </ul>
       <div>
+        <h3>Add a new rule</h3>
         <select
           value={newRuleFormSelections.target}
           onChange={(event) => {
@@ -218,6 +243,43 @@ const App = ({ initialGrid }) => {
         />
         <label htmlFor="addSymmetricRule">Add symmetric rule</label>
       </div>
+      <Column>
+        <h2>RNG &amp; Seeding</h2>
+        <Column>
+          <h3>Current seed</h3>
+          <div>
+            <input type="text" value={rng.seed} disabled />
+            <button onClick={() => setRng(createRNG())}>{"\u27f3"}</button>
+          </div>
+        </Column>
+        <h3>Set a new seed</h3>
+        <input
+          type="text"
+          value={newSeed}
+          onChange={(event) => setNewSeed(event.target.value)}
+        />
+        <button onClick={() => setRng(createRNG(newSeed))}>Set Seed</button>
+        <br />
+        <div>
+          <input
+            name="pickNewSeedAfterGeneration"
+            type="checkbox"
+            checked={pickNewSeedAfterGeneration}
+            onChange={(event) => {
+              setPickNewSeedAfterGeneration(event.target.checked);
+            }}
+          />
+          <label htmlFor="pickNewSeedAfterGeneration">
+            Pick new seed automatically after generation
+          </label>
+          <h3>Previous seeds</h3>
+          <ul>
+            {seeds.map((seed, index) => (
+              <li key={seeds.length - index}>{seed}</li>
+            ))}
+          </ul>
+        </div>
+      </Column>
       <p>
         This site was made while referencing{" "}
         <a href="https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/">

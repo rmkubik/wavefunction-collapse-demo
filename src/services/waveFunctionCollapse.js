@@ -23,52 +23,71 @@ const evaluateRuleInDirection = (
   originLocation,
   targetDirection,
   grid,
-  rules
+  rules,
+  tileTypes
 ) => {
-  const possibleOptions = [];
-
-  if (isLocationInBounds(grid, originLocation)) {
-    const originOptions = getLocation(grid, originLocation);
-
-    rules.forEach((rule) => {
-      const [origin, target, direction] = rule;
-
-      originOptions.forEach((option) => {
-        // Does this rule pertain to this neighbor
-        // Is this rule's direction applying to our current cell
-        if (origin === option && direction === targetDirection) {
-          // Add this rule as a possible option for this current cell
-          possibleOptions.push(target);
-        }
-      });
-    });
+  if (!isLocationInBounds(grid, originLocation)) {
+    // Treat out of bounds locations as permanent wild cards
+    return [...tileTypes];
   }
+
+  const possibleOptions = [];
+  const originOptions = getLocation(grid, originLocation);
+
+  rules.forEach((rule) => {
+    const [origin, target, direction] = rule;
+
+    originOptions.forEach((option) => {
+      // Does this rule pertain to this neighbor
+      // Is this rule's direction applying to our current cell
+      if (origin === option && direction === targetDirection) {
+        // Add this rule as a possible option for this current cell
+        possibleOptions.push(target);
+      }
+    });
+  });
 
   return possibleOptions;
 };
 
-const evaluateCellOptions = (grid, location, rules) => {
+const evaluateCellOptions = (grid, location, rules, tileTypes) => {
   const upLocation = getUpLocation(location);
-  const upOptions = evaluateRuleInDirection(upLocation, "DOWN", grid, rules);
+  const upOptions = evaluateRuleInDirection(
+    upLocation,
+    "DOWN",
+    grid,
+    rules,
+    tileTypes
+  );
 
-  const downLocation = getUpLocation(location);
-  const downOptions = evaluateRuleInDirection(downLocation, "UP", grid, rules);
+  const downLocation = getDownLocation(location);
+  const downOptions = evaluateRuleInDirection(
+    downLocation,
+    "UP",
+    grid,
+    rules,
+    tileTypes
+  );
 
-  const leftLocation = getUpLocation(location);
+  const leftLocation = getLeftLocation(location);
   const leftOptions = evaluateRuleInDirection(
     leftLocation,
     "RIGHT",
     grid,
-    rules
+    rules,
+    tileTypes
   );
 
-  const rightLocation = getUpLocation(location);
+  const rightLocation = getRightLocation(location);
   const rightOptions = evaluateRuleInDirection(
     rightLocation,
     "LEFT",
     grid,
-    rules
+    rules,
+    tileTypes
   );
+
+  console.log({ location, upOptions, downOptions, leftOptions, rightOptions });
 
   return intersectionMany(upOptions, downOptions, leftOptions, rightOptions);
 };
@@ -119,7 +138,7 @@ const applyRules = (chosenOption, location, grid, rules) => {
   });
 };
 
-const ripple = (grid, location, rules, closed = []) => {
+const ripple = (grid, location, rules, tileTypes, closed = []) => {
   if (!isLocationInBounds(grid, location)) {
     // we have reached the edge of the grid
     return true;
@@ -135,27 +154,39 @@ const ripple = (grid, location, rules, closed = []) => {
   // mark this node as visited
   closed.push(location);
 
-  const neighbors = getNeighbors(getCrossDirections, grid, location);
+  const neighbors = getNeighbors(getCrossDirections, grid, location)
+    // Remove any neighbor that is already closed
+    .filter((neighborLocation) =>
+      closed.every(
+        (closedLocation) => !compareLocations(closedLocation, neighborLocation)
+      )
+    );
 
-  neighbors.forEach((neighborLocation) => {
-    const neighborOptions = evaluateCellOptions(grid, neighborLocation, rules);
+  for (const neighborLocation of neighbors) {
+    const neighborOptions = evaluateCellOptions(
+      grid,
+      neighborLocation,
+      rules,
+      tileTypes
+    );
 
     if (neighborOptions.length === 0) {
-      console.log(JSON.parse(JSON.stringify({ grid, neighborLocation })));
+      console.log(
+        JSON.parse(
+          JSON.stringify({ grid, neighborLocation, location, neighborOptions })
+        )
+      );
+
       // we have reached an invalid waveform collapse pattern
       // we'll need to try again
-      // console.log(
-      //   `There was no valid option for the neighbor ${neighborLocation}`
-      // );
-
       return false;
     }
 
     // mutate the grid with the newly calculated options
     mutateLocation(grid, neighborLocation, neighborOptions);
 
-    return ripple(grid, neighborLocation, rules, closed);
-  });
+    return ripple(grid, neighborLocation, rules, tileTypes, closed);
+  }
 };
 
 const collapseGrid = (grid, tileTypes, rules) => {
@@ -180,9 +211,10 @@ const collapseGrid = (grid, tileTypes, rules) => {
   mutateLocation(grid, location, [chosenOption]);
 
   // deal with ripples from this selection
-  const didRippleSucceed = ripple(grid, location, rules);
+  const didRippleSucceed = ripple(grid, location, rules, tileTypes);
 
   if (!didRippleSucceed) {
+    console.log("ripple did not succeed");
     return { grid, success: false };
   }
 

@@ -75,19 +75,6 @@ const evaluateCellOptions = (grid, location, rules) => {
 
 const startCollapseGrid = (grid, tileTypes, rules) => {
   const defaultOptions = mapMatrix(() => [...tileTypes], grid);
-  const modifiedOptions = updateMatrix(
-    { row: 0, col: 0 },
-    ["OCEAN"],
-    defaultOptions
-  );
-
-  const opt = evaluateCellOptions(
-    modifiedOptions,
-    { row: 1, col: 0 },
-    rules,
-    tileTypes
-  );
-  console.log(opt);
 
   return collapseGrid(defaultOptions, tileTypes, rules);
 };
@@ -135,14 +122,14 @@ const applyRules = (chosenOption, location, grid, rules) => {
 const ripple = (grid, location, rules, closed = []) => {
   if (!isLocationInBounds(grid, location)) {
     // we have reached the edge of the grid
-    return;
+    return true;
   }
 
   if (
     closed.some((closedLocation) => compareLocations(closedLocation, location))
   ) {
     // If we have already visited this location, do not perform any calculations
-    return;
+    return true;
   }
 
   // mark this node as visited
@@ -154,19 +141,20 @@ const ripple = (grid, location, rules, closed = []) => {
     const neighborOptions = evaluateCellOptions(grid, neighborLocation, rules);
 
     if (neighborOptions.length === 0) {
+      console.log(JSON.parse(JSON.stringify({ grid, neighborLocation })));
       // we have reached an invalid waveform collapse pattern
       // we'll need to try again
-      console.log(
-        `There was no valid option for the neighbor ${neighborLocation}`
-      );
+      // console.log(
+      //   `There was no valid option for the neighbor ${neighborLocation}`
+      // );
 
-      return;
+      return false;
     }
 
     // mutate the grid with the newly calculated options
     mutateLocation(grid, neighborLocation, neighborOptions);
 
-    ripple(grid, neighborLocation, rules, closed);
+    return ripple(grid, neighborLocation, rules, closed);
   });
 };
 
@@ -176,7 +164,7 @@ const collapseGrid = (grid, tileTypes, rules) => {
   // console.log(JSON.parse(JSON.stringify(grid)));
 
   if (location?.finished) {
-    return grid;
+    return { grid, success: true };
   }
 
   let options = getLocation(grid, location);
@@ -192,7 +180,11 @@ const collapseGrid = (grid, tileTypes, rules) => {
   mutateLocation(grid, location, [chosenOption]);
 
   // deal with ripples from this selection
-  ripple(grid, location, rules);
+  const didRippleSucceed = ripple(grid, location, rules);
+
+  if (!didRippleSucceed) {
+    return { grid, success: false };
+  }
 
   return collapseGrid(grid, tileTypes, rules);
 };

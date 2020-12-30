@@ -182,6 +182,13 @@ const App = ({ initialGrid }) => {
         </select>
         <button onClick={() => addRule(newRuleFormSelections)}>Add Rule</button>
       </div>
+      <p>
+        This site was made while referencing{" "}
+        <a href="https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/">
+          this excellent break down of the Wave Function Collapse algorithm
+        </a>
+        .
+      </p>
     </>
   );
 };

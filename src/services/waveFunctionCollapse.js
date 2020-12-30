@@ -1,11 +1,9 @@
 import {
-  getDimensions,
   mapMatrix,
   getLocation,
   getNeighbors,
   getCrossDirections,
   isLocationInBounds,
-  updateMatrix,
   compareLocations,
 } from "functional-game-utils";
 
@@ -96,46 +94,6 @@ const startCollapseGrid = (grid, tileTypes, rules) => {
   return collapseGrid(defaultOptions, tileTypes, rules);
 };
 
-const applyRules = (chosenOption, location, grid, rules) => {
-  const dimensions = getDimensions(grid);
-
-  if (open.length === 0) {
-    // finished applying rules ripple
-    return;
-  }
-
-  rules.forEach(([originType, targetType, direction]) => {
-    if (chosenOption === originType) {
-      // this rule relates to our chosen option so let's apply it
-      let targetLocation;
-
-      switch (direction) {
-        case "LEFT":
-          targetLocation = getLeftLocation(location, dimensions);
-          break;
-        case "RIGHT":
-          targetLocation = getRightLocation(location, dimensions);
-          break;
-        case "UP":
-          targetLocation = getUpLocation(location, dimensions);
-          break;
-        case "DOWN":
-          targetLocation = getDownLocation(location, dimensions);
-          break;
-      }
-
-      // Add our option from this rule to any potential options already there
-      const target = getLocation(grid, targetLocation);
-      // console.log(JSON.parse(JSON.stringify({ target, targetLocation, rules })));
-      if (target.length === 0) {
-        // target is an unitialized node
-        mutateLocation(grid, targetLocation, [...target, targetType]);
-        applyRules(chosenOption, targetLocation, grid, rules);
-      }
-    }
-  });
-};
-
 const ripple = (grid, location, rules, tileTypes, closed = []) => {
   if (!isLocationInBounds(grid, location)) {
     // we have reached the edge of the grid
@@ -169,12 +127,6 @@ const ripple = (grid, location, rules, tileTypes, closed = []) => {
     );
 
     if (neighborOptions.length === 0) {
-      console.log(
-        JSON.parse(
-          JSON.stringify({ grid, neighborLocation, location, neighborOptions })
-        )
-      );
-
       // we have reached an invalid waveform collapse pattern
       // we'll need to try again
       return false;

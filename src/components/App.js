@@ -1,16 +1,14 @@
-import { getDimensions, mapMatrix } from "functional-game-utils";
-import { remove, mergeLeft } from "ramda";
+import { mapMatrix } from "functional-game-utils";
 import React, { useState } from "react";
 
 import { startCollapseGrid } from "../services/waveFunctionCollapse";
-import { getOppositeDirection, createRNG } from "../services/utils";
-
-const renderTile = ({ type }) => {
-  if (type === "EMPTY") return ".";
-  if (type === "TREE") return "🌲";
-  if (type === "BEACH") return "🏖";
-  if (type === "OCEAN") return "🌊";
-};
+import { createRNG } from "../services/utils";
+import Grid from "./Grid";
+import Rules from "./Rules";
+import Tiles from "./Tiles";
+import renderTile from "../services/renderTile";
+import Rng from "./Rng";
+import History from "./History";
 
 const getStatusMessage = (status) => {
   if (status === "UNSTARTED") return "";
@@ -19,25 +17,11 @@ const getStatusMessage = (status) => {
   if (status === "FAILED") return "Failed!";
 };
 
-const Column = ({ children }) => {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "fit-content",
-      }}
-    >
-      {children}
-    </div>
-  );
-};
-
 const App = ({ initialGrid, initialRng }) => {
   // UNSTARTED, GENERATING, FAILED, SUCCEEDED
   const [status, setStatus] = useState("UNSTARTED");
   const [grid, setGrid] = useState(initialGrid);
-  const [tileTypes, setTileTypes] = useState(["TREE", "BEACH"]);
+  const [tileTypes, setTileTypes] = useState(["TREE", "BEACH", "OCEAN"]);
   const [rules, setRules] = useState([
     ["TREE", "BEACH", "RIGHT"],
     ["BEACH", "TREE", "LEFT"],
@@ -50,50 +34,12 @@ const App = ({ initialGrid, initialRng }) => {
     ["BEACH", "BEACH", "UP"],
     ["BEACH", "BEACH", "DOWN"],
   ]);
-  const [newRuleFormSelections, setNewRuleFormSelections] = useState({
-    target: tileTypes[0],
-    origin: tileTypes[0],
-    direction: "LEFT",
-    addSymmetricRule: true,
-  });
   const [rng, setRng] = useState(initialRng);
-  const [newSeed, setNewSeed] = useState("");
   const [pickNewSeedAfterGeneration, setPickNewSeedAfterGeneration] = useState(
     true
   );
   const [history, setHistory] = useState([]);
   const [iterationCutOff, setIterationCutOff] = useState(100);
-
-  const { width, height } = getDimensions(grid);
-
-  const addRule = (newRuleOptions) => {
-    const newRules = newRuleOptions.addSymmetricRule
-      ? [
-          [
-            newRuleOptions.origin,
-            newRuleOptions.target,
-            newRuleOptions.direction,
-          ],
-          [
-            newRuleOptions.target,
-            newRuleOptions.origin,
-            getOppositeDirection(newRuleOptions.direction),
-          ],
-        ]
-      : [
-          [
-            newRuleOptions.origin,
-            newRuleOptions.target,
-            newRuleOptions.direction,
-          ],
-        ];
-
-    setRules([...rules, ...newRules]);
-  };
-
-  const removeRule = (ruleIndex) => {
-    setRules(remove(ruleIndex, 1, rules));
-  };
 
   const generateGrid = (chosenRng) => {
     const { grid: generatedGrid, success } = startCollapseGrid(
@@ -134,20 +80,7 @@ const App = ({ initialGrid, initialRng }) => {
 
   return (
     <>
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: `1.5em `.repeat(width),
-          gridTemplateRows: `1.5em `.repeat(height),
-        }}
-      >
-        {mapMatrix(
-          (tile, { row, col }) => (
-            <div key={`${row}.${col}`}>{renderTile(tile)}</div>
-          ),
-          grid
-        )}
-      </div>
+      <Grid tiles={grid} renderTile={renderTile} />
       <button onClick={() => generateGrid(rng)}>Generate</button>
       <button
         onClick={() => {
@@ -160,152 +93,25 @@ const App = ({ initialGrid, initialRng }) => {
       {status !== "UNSTARTED" && (
         <p>{`${getStatusMessage(status)} with seed ${history[0].seed}`}</p>
       )}
-      <h2>Rules</h2>
-      <ul>
-        {rules.map(([origin, target, direction], ruleIndex) => {
-          return (
-            <li key={`${origin}.${target}.${direction}`}>
-              {`${target} can be ${direction} from ${origin}`}
-              <button onClick={() => removeRule(ruleIndex)}>X</button>
-            </li>
-          );
-        })}
-      </ul>
-      <div>
-        <h3>Add a new rule</h3>
-        <select
-          value={newRuleFormSelections.target}
-          onChange={(event) => {
-            setNewRuleFormSelections(
-              mergeLeft(
-                {
-                  target: event.target.value,
-                },
-                newRuleFormSelections
-              )
-            );
-          }}
-          name="target"
-          id="new-rule-target-select"
-        >
-          {tileTypes.map((tile) => (
-            <option key={tile} value={tile}>
-              {tile}
-            </option>
-          ))}
-        </select>
-        <select
-          value={newRuleFormSelections.direction}
-          onChange={(event) => {
-            setNewRuleFormSelections(
-              mergeLeft(
-                {
-                  direction: event.target.value,
-                },
-                newRuleFormSelections
-              )
-            );
-          }}
-          name="direction"
-          id="new-rule-direction-select"
-        >
-          <option value="LEFT">LEFT</option>
-          <option value="RIGHT">RIGHT</option>
-          <option value="UP">UP</option>
-          <option value="DOWN">DOWN</option>
-        </select>
-        <select
-          value={newRuleFormSelections.origin}
-          onChange={(event) => {
-            setNewRuleFormSelections(
-              mergeLeft(
-                {
-                  origin: event.target.value,
-                },
-                newRuleFormSelections
-              )
-            );
-          }}
-          name="origin"
-          id="new-rule-origin-select"
-        >
-          {tileTypes.map((tile) => (
-            <option key={tile} value={tile}>
-              {tile}
-            </option>
-          ))}
-        </select>
-        <button onClick={() => addRule(newRuleFormSelections)}>Add Rule</button>
-        <input
-          name="addSymmetricRule"
-          type="checkbox"
-          checked={newRuleFormSelections.addSymmetricRule}
-          onChange={(event) => {
-            setNewRuleFormSelections(
-              mergeLeft(
-                {
-                  addSymmetricRule: event.target.checked,
-                },
-                newRuleFormSelections
-              )
-            );
-          }}
-        />
-        <label htmlFor="addSymmetricRule">Add symmetric rule</label>
-        <h3>Iteration cut off count</h3>
-        <input
-          type="text"
-          value={iterationCutOff}
-          onChange={(event) => setIterationCutOff(event.target.value)}
-        />
-      </div>
-      <Column>
-        <h2>RNG &amp; Seeding</h2>
-        <Column>
-          <h3>Current seed</h3>
-          <div>
-            <input type="text" value={rng.seed} disabled />
-            <button onClick={() => setRng(createRNG())}>{"\u27f3"}</button>
-          </div>
-        </Column>
-        <h3>Set a new seed</h3>
-        <input
-          type="text"
-          value={newSeed}
-          onChange={(event) => setNewSeed(event.target.value)}
-        />
-        <button onClick={() => setRng(createRNG(newSeed))}>Set Seed</button>
-        <br />
-        <div>
-          <input
-            name="pickNewSeedAfterGeneration"
-            type="checkbox"
-            checked={pickNewSeedAfterGeneration}
-            onChange={(event) => {
-              setPickNewSeedAfterGeneration(event.target.checked);
-            }}
-          />
-          <label htmlFor="pickNewSeedAfterGeneration">
-            Pick new seed automatically after generation
-          </label>
-          <h3>Previous seeds</h3>
-          <ul>
-            {history.map(({ seed, success }, index) => (
-              <li key={history.length - index}>
-                {`${seed} - ${success ? "succeeded" : "failed"} - `}
-                <button
-                  onClick={() => {
-                    const newRng = createRNG(seed);
-                    generateGrid(newRng);
-                  }}
-                >
-                  Re-generate
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Column>
+      <Tiles
+        tileTypes={tileTypes}
+        setTileTypes={setTileTypes}
+        renderTile={renderTile}
+      />
+      <Rules rules={rules} setRules={setRules} tileTypes={tileTypes} />
+      <h3>Iteration cut off count</h3>
+      <input
+        type="text"
+        value={iterationCutOff}
+        onChange={(event) => setIterationCutOff(event.target.value)}
+      />
+      <Rng
+        rng={rng}
+        setRng={setRng}
+        pickNewSeedAfterGeneration={pickNewSeedAfterGeneration}
+        setPickNewSeedAfterGeneration={setPickNewSeedAfterGeneration}
+      />
+      <History history={history} generateGrid={generateGrid} />
       <p>
         This site was made while referencing{" "}
         <a href="https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/">

@@ -18,6 +18,9 @@ import {
   intersectionMany,
 } from "./utils";
 
+// broken seed
+// 0.22265473944480982
+
 const evaluateRuleInDirection = (
   originLocation,
   targetDirection,

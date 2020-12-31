@@ -61,7 +61,7 @@ const App = ({ initialGrid, initialRng }) => {
   const [pickNewSeedAfterGeneration, setPickNewSeedAfterGeneration] = useState(
     true
   );
-  const [seeds, setSeeds] = useState([]);
+  const [history, setHistory] = useState([]);
 
   const { width, height } = getDimensions(grid);
 
@@ -94,12 +94,12 @@ const App = ({ initialGrid, initialRng }) => {
     setRules(remove(ruleIndex, 1, rules));
   };
 
-  const generateGrid = () => {
+  const generateGrid = (chosenRng) => {
     const { grid: generatedGrid, success } = startCollapseGrid(
       grid,
       tileTypes,
       rules,
-      rng.rng
+      chosenRng.rng
     );
 
     if (success) {
@@ -109,14 +109,14 @@ const App = ({ initialGrid, initialRng }) => {
     }
 
     // track our last used seed
-    setSeeds([rng.seed, ...seeds]);
+    setHistory([{ seed: chosenRng.seed, success }, ...history]);
 
     if (pickNewSeedAfterGeneration) {
       // create a new rng with an unspecified seed
       setRng(createRNG());
     } else {
       // re-seed the RNG with our current seed
-      setRng(createRNG(rng.seed));
+      setRng(createRNG(chosenRng.seed));
     }
 
     const gridIcons = mapMatrix((options) => {
@@ -146,9 +146,9 @@ const App = ({ initialGrid, initialRng }) => {
           grid
         )}
       </div>
-      <button onClick={generateGrid}>Generate</button>
+      <button onClick={() => generateGrid(rng)}>Generate</button>
       {status !== "UNSTARTED" && (
-        <p>{`${getStatusMessage(status)} with seed ${seeds[0]}`}</p>
+        <p>{`${getStatusMessage(status)} with seed ${history[0].seed}`}</p>
       )}
       <h2>Rules</h2>
       <ul>
@@ -274,8 +274,18 @@ const App = ({ initialGrid, initialRng }) => {
           </label>
           <h3>Previous seeds</h3>
           <ul>
-            {seeds.map((seed, index) => (
-              <li key={seeds.length - index}>{seed}</li>
+            {history.map(({ seed, success }, index) => (
+              <li key={history.length - index}>
+                {`${seed} - ${success ? "succeeded" : "failed"} - `}
+                <button
+                  onClick={() => {
+                    const newRng = createRNG(seed);
+                    generateGrid(newRng);
+                  }}
+                >
+                  Re-generate
+                </button>
+              </li>
             ))}
           </ul>
         </div>

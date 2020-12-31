@@ -8,7 +8,6 @@ const Rng = ({
   setRng,
   pickNewSeedAfterGeneration,
   setPickNewSeedAfterGeneration,
-  history,
 }) => {
   const [newSeed, setNewSeed] = useState("");
 

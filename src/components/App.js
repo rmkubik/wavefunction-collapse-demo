@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { startCollapseGrid } from "../services/waveFunctionCollapse";
 import { createRNG } from "../services/utils";
 import Grid from "./Grid";
-import Rules from "./Rules";
+import Rules from "./rules/Rules";
 import Tiles from "./Tiles";
 import renderTile from "../services/renderTile";
 import Rng from "./Rng";

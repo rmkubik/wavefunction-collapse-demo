@@ -147,6 +147,14 @@ const App = ({ initialGrid, initialRng }) => {
         )}
       </div>
       <button onClick={() => generateGrid(rng)}>Generate</button>
+      <button
+        onClick={() => {
+          const newRng = createRNG(history[0].seed);
+          generateGrid(newRng);
+        }}
+      >
+        Re-generate
+      </button>
       {status !== "UNSTARTED" && (
         <p>{`${getStatusMessage(status)} with seed ${history[0].seed}`}</p>
       )}

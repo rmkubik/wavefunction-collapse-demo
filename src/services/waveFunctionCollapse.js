@@ -5,7 +5,6 @@ import {
   getCrossDirections,
   isLocationInBounds,
   compareLocations,
-  getDimensions,
 } from "functional-game-utils";
 
 import {
@@ -98,7 +97,22 @@ const startCollapseGrid = (grid, tileTypes, rules, rng) => {
   return collapseGrid(defaultOptions, tileTypes, rules, rng);
 };
 
-const ripple = (grid, location, rules, tileTypes, closed = []) => {
+const startRipple = (grid, location, rules, tileTypes) => {
+  // start with neighbors of modified location
+  const neighbors = getNeighbors(getCrossDirections, grid, location);
+
+  return ripple(grid, rules, tileTypes, [...neighbors], [location]);
+};
+
+const ripple = (grid, rules, tileTypes, open = [], closed = []) => {
+  if (open.length === 0) {
+    // we have visited all opened cells, finished our floodfill
+    return true;
+  }
+
+  // remove first item in open list
+  const location = open.shift();
+
   if (!isLocationInBounds(grid, location)) {
     // we have reached the edge of the grid
     return true;
@@ -120,30 +134,30 @@ const ripple = (grid, location, rules, tileTypes, closed = []) => {
       closed.every(
         (closedLocation) => !compareLocations(closedLocation, neighborLocation)
       )
+    )
+    // Remove any neighbor that is already opened
+    .filter((neighborLocation) =>
+      open.every(
+        (openLocation) => !compareLocations(openLocation, neighborLocation)
+      )
     );
 
-  for (const neighborLocation of neighbors) {
-    const neighborOptions = evaluateCellOptions(
-      grid,
-      neighborLocation,
-      rules,
-      tileTypes
-    );
+  // add all valid neighbors to the open list so we can visit them later
+  open.push(...neighbors);
 
-    if (neighborOptions.length === 0) {
-      // we have reached an invalid waveform collapse pattern
-      // we'll need to try again
-      return false;
-    }
+  // evaluate new options for this location
+  const options = evaluateCellOptions(grid, location, rules, tileTypes);
 
-    // mutate the grid with the newly calculated options
-    mutateLocation(grid, neighborLocation, neighborOptions);
-
-    return ripple(grid, neighborLocation, rules, tileTypes, closed);
+  if (options.length === 0) {
+    // we have reached an invalid waveform collapse pattern
+    // we'll need to try again
+    return false;
   }
 
-  // If we reach this point then we have no open neighbors
-  return true;
+  // mutate the grid with the newly calculated options
+  mutateLocation(grid, location, options);
+
+  return ripple(grid, rules, tileTypes, open, closed);
 };
 
 const collapseGrid = (grid, tileTypes, rules, rng) => {
@@ -166,7 +180,7 @@ const collapseGrid = (grid, tileTypes, rules, rng) => {
   mutateLocation(grid, location, [chosenOption]);
 
   // deal with ripples from this selection
-  const didRippleSucceed = ripple(grid, location, rules, tileTypes);
+  const didRippleSucceed = startRipple(grid, location, rules, tileTypes);
 
   if (!didRippleSucceed) {
     return { grid, success: false };

@@ -302,8 +302,8 @@ const App = ({ initialGrid, initialRng }) => {
         This site was made while referencing{" "}
         <a href="https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/">
           this excellent break down of the Wave Function Collapse algorithm
-        </a>
-        .
+        </a>{" "}
+        by Robert Heaton.
       </p>
     </>
   );

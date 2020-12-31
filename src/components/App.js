@@ -62,6 +62,7 @@ const App = ({ initialGrid, initialRng }) => {
     true
   );
   const [history, setHistory] = useState([]);
+  const [iterationCutOff, setIterationCutOff] = useState(100);
 
   const { width, height } = getDimensions(grid);
 
@@ -99,7 +100,8 @@ const App = ({ initialGrid, initialRng }) => {
       grid,
       tileTypes,
       rules,
-      chosenRng.rng
+      chosenRng.rng,
+      iterationCutOff
     );
 
     if (success) {
@@ -250,6 +252,12 @@ const App = ({ initialGrid, initialRng }) => {
           }}
         />
         <label htmlFor="addSymmetricRule">Add symmetric rule</label>
+        <h3>Iteration cut off count</h3>
+        <input
+          type="text"
+          value={iterationCutOff}
+          onChange={(event) => setIterationCutOff(event.target.value)}
+        />
       </div>
       <Column>
         <h2>RNG &amp; Seeding</h2>

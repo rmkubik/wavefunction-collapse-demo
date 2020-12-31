@@ -17,8 +17,9 @@ import {
   intersectionMany,
 } from "./utils";
 
-// broken seed
-// 0.22265473944480982
+const isLocationCollapsed = (grid, location) => {
+  return getLocation(grid, location).length === 1;
+};
 
 const evaluateRuleInDirection = (
   originLocation,
@@ -91,10 +92,20 @@ const evaluateCellOptions = (grid, location, rules, tileTypes) => {
   return intersectionMany(upOptions, downOptions, leftOptions, rightOptions);
 };
 
-const startCollapseGrid = (grid, tileTypes, rules, rng) => {
+let iteration;
+
+const startCollapseGrid = (
+  grid,
+  tileTypes,
+  rules,
+  rng,
+  iterationCutOff = 100
+) => {
+  iteration = 0;
+
   const defaultOptions = mapMatrix(() => [...tileTypes], grid);
 
-  return collapseGrid(defaultOptions, tileTypes, rules, rng);
+  return collapseGrid(defaultOptions, tileTypes, rules, rng, iterationCutOff);
 };
 
 const startRipple = (grid, location, rules, tileTypes) => {
@@ -154,13 +165,24 @@ const ripple = (grid, rules, tileTypes, open = [], closed = []) => {
     return false;
   }
 
-  // mutate the grid with the newly calculated options
-  mutateLocation(grid, location, options);
+  if (isLocationCollapsed(grid, location)) {
+    // this location is already collapsed
+    // if it's collapsed option is not a valid option
+    // we should mark this generation as invalid, and return false
+    const [collapsedOption] = getLocation(grid, location);
+    if (!options.includes(collapsedOption)) {
+      return false;
+    }
+  } else {
+    // mutate the grid with the newly calculated options
+    // we do not want to mutate already collapsed locations
+    mutateLocation(grid, location, options);
+  }
 
   return ripple(grid, rules, tileTypes, open, closed);
 };
 
-const collapseGrid = (grid, tileTypes, rules, rng) => {
+const collapseGrid = (grid, tileTypes, rules, rng, iterationCutOff) => {
   const location = pickLowestEntropyUncollapsedLocation(grid);
 
   if (location?.finished) {
@@ -182,11 +204,18 @@ const collapseGrid = (grid, tileTypes, rules, rng) => {
   // deal with ripples from this selection
   const didRippleSucceed = startRipple(grid, location, rules, tileTypes);
 
+  iteration++;
+
+  if (iteration > iterationCutOff) {
+    console.error(`Reached iteration cut off value of ${iterationCutOff}`);
+    return { grid, success: false };
+  }
+
   if (!didRippleSucceed) {
     return { grid, success: false };
   }
 
-  return collapseGrid(grid, tileTypes, rules, rng);
+  return collapseGrid(grid, tileTypes, rules, rng, iterationCutOff);
 };
 
 const evaluateTileEntropy = (tile) => {
@@ -195,9 +224,9 @@ const evaluateTileEntropy = (tile) => {
 
 const pickLowestEntropyUncollapsedLocation = (optionsGrid) => {
   const allLocations = mapMatrix((_, location) => location, optionsGrid).flat();
-  const unCollapsedLocations = allLocations.filter((location) => {
-    return getLocation(optionsGrid, location).length > 1;
-  });
+  const unCollapsedLocations = allLocations.filter(
+    (location) => !isLocationCollapsed(optionsGrid, location)
+  );
 
   if (unCollapsedLocations.length === 0) {
     return { finished: true };

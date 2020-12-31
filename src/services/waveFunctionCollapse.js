@@ -165,7 +165,6 @@ const collapseGrid = (grid, tileTypes, rules, rng) => {
 
   mutateLocation(grid, location, [chosenOption]);
 
-  console.log(`start a ripple from ${JSON.stringify(location)}`);
   // deal with ripples from this selection
   const didRippleSucceed = ripple(grid, location, rules, tileTypes);
 
@@ -187,7 +186,6 @@ const pickLowestEntropyUncollapsedLocation = (optionsGrid) => {
   });
 
   if (unCollapsedLocations.length === 0) {
-    console.log("We have collapsed every location!");
     return { finished: true };
   }
 

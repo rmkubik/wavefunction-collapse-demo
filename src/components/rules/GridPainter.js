@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { constructMatrix, updateMatrix } from "functional-game-utils";
 
+import { createRulesFromGrid } from "../../services/rules";
 import renderTile from "../../services/renderTile";
 import Grid from "../Grid";
 import Row from "../Row";
@@ -54,6 +55,13 @@ const GridPainter = ({ tileTypes }) => {
             </li>
           ))}
         </ul>
+        <button
+          onClick={() => {
+            console.log(createRulesFromGrid(tiles));
+          }}
+        >
+          Create Rules
+        </button>
       </div>
     </Row>
   );

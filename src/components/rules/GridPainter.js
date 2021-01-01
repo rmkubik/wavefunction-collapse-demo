@@ -30,7 +30,7 @@ const renderTileWithClickable = (updateTile) => (tile, location) => {
   );
 };
 
-const GridPainter = ({ tileTypes }) => {
+const GridPainter = ({ tileTypes, setRules }) => {
   const [tiles, setTiles] = useState(initialTiles);
   const [selected, setSelected] = useState(tileTypes[0]);
 
@@ -57,7 +57,7 @@ const GridPainter = ({ tileTypes }) => {
         </ul>
         <button
           onClick={() => {
-            console.log(createRulesFromGrid(tiles));
+            setRules(createRulesFromGrid(tiles));
           }}
         >
           Create Rules

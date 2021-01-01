@@ -49,7 +49,7 @@ const Rules = ({ rules, setRules, tileTypes }) => {
         </Column>
         <Column>
           <h3>Generate Rules from Image</h3>
-          <GridPainter tileTypes={tileTypes} />
+          <GridPainter tileTypes={tileTypes} setRules={setRules} />
         </Column>
       </Row>
     </>

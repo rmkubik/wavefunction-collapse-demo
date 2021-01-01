@@ -2,6 +2,7 @@ import React from "react";
 import { remove } from "ramda";
 
 import { getOppositeDirection } from "../../services/utils";
+import { removeDuplicateRules } from "../../services/rules";
 import Row from "../Row";
 import Column from "../Column";
 import AddRuleForm from "./AddRuleForm";
@@ -31,7 +32,7 @@ const Rules = ({ rules, setRules, tileTypes }) => {
           ],
         ];
 
-    setRules([...rules, ...newRules]);
+    setRules(removeDuplicateRules([...rules, ...newRules]));
   };
 
   const removeRule = (ruleIndex) => {

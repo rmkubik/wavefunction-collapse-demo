@@ -1,10 +1,12 @@
 import React from "react";
 import { remove } from "ramda";
+
 import { getOppositeDirection } from "../../services/utils";
 import Row from "../Row";
 import Column from "../Column";
 import AddRuleForm from "./AddRuleForm";
 import RulesList from "./RulesList";
+import GridPainter from "./GridPainter";
 
 const Rules = ({ rules, setRules, tileTypes }) => {
   const addRule = (newRuleOptions) => {
@@ -44,7 +46,10 @@ const Rules = ({ rules, setRules, tileTypes }) => {
           <RulesList rules={rules} removeRule={removeRule} />
           <AddRuleForm addRule={addRule} tileTypes={tileTypes} />
         </Column>
-        <div>asdfasfdasdf</div>
+        <Column>
+          <h3>Generate Rules from Image</h3>
+          <GridPainter tileTypes={tileTypes} />
+        </Column>
       </Row>
     </>
   );

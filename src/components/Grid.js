@@ -14,7 +14,7 @@ const Grid = ({ tiles, renderTile }) => {
     >
       {mapMatrix(
         (tile, { row, col }) => (
-          <div key={`${row}.${col}`}>{renderTile(tile)}</div>
+          <div key={`${row}.${col}`}>{renderTile(tile, { row, col })}</div>
         ),
         tiles
       )}
